@@ -4,39 +4,39 @@ public class CharacterMovement : MonoBehaviour
 {
     private const string VERTICAL = "Vertical";
     private const string HORIZONTAL = "Horizontal";
+    private const string JUMP = "Jump";
 
     public float speed = 5f;
+    public float rotationSmooth = 3f;
     public float jumpForce = 100.0f;
     public CharacterController controller;
 
+    private float verticalInput;
+    private float horizontalInput;
+
     private float verticalVelocity;
     private Vector2 movement;
-    private bool isJumping;
-
-    void Start() {
-        isJumping = false;
-    }    
 
     void Update() {
-        float verticalInput = Input.GetAxisRaw(VERTICAL);
-        float horizontalInput = Input.GetAxisRaw(HORIZONTAL);
+        verticalInput = Input.GetAxisRaw(VERTICAL);
+        horizontalInput = Input.GetAxisRaw(HORIZONTAL);
 
-        if (Input.GetButtonDown("Jump")) {
-            isJumping = true;
-        } else {
-            isJumping = false;
+        if (Input.GetButtonDown(JUMP) && controller.isGrounded) {
+            Jump();
         }
 
         movement = new Vector2(horizontalInput, verticalInput).normalized;
+
+        if (movement == Vector2.zero) {
+            return;
+        }
+
+        FaceDirection();
     }
 
     void FixedUpdate() {
         CalculateGravity();
         Vector3 move = CalculateMovement();
-
-        if (isJumping && controller.isGrounded) {
-            Jump();
-        }
 
         controller.Move((move + (Vector3.up * verticalVelocity)) * Time.fixedDeltaTime);
     }
@@ -52,6 +52,16 @@ public class CharacterMovement : MonoBehaviour
         cameraRight.Normalize();
 
         return (cameraFwd * movement.y + cameraRight * movement.x) * speed;
+    }
+
+    // Handle PlayerRotation
+    private void FaceDirection() {
+        // Using quaternion lerp (Linear Interpolation) to smoothly rotate player
+        transform.rotation = Quaternion.Lerp(
+            transform.rotation,
+            Quaternion.LookRotation(CalculateMovement()),
+            rotationSmooth * Time.deltaTime
+        );
     }
 
     void CalculateGravity() {
